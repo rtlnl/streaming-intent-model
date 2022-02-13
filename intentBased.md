@@ -1,7 +1,10 @@
-Intent Based Satisfaction Prediction
+Intent-based Satisfaction Modeling – From Music to Video Streaming
 ================
 Gabriel
 2/13/2022
+
+This repository contains the supporting material for the paper
+/Intent-based Satisfaction Modeling – From Music to Video Streaming/.
 
 # libraries
 

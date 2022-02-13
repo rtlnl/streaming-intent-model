@@ -1,9 +1,11 @@
 ---
-title: "Intent Based Satisfaction Prediction"
+title: "Intent-based Satisfaction Modeling – From Music to Video Streaming"
 author: "Gabriel"
 date: "2/13/2022"
 output: rmarkdown::github_document
 ---
+
+This repository contains the supporting material for the paper /Intent-based Satisfaction Modeling – From Music to Video Streaming/.
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = T, warning = F, message = F)
