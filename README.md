@@ -3,10 +3,28 @@ Intent-based Satisfaction Modeling – From Music to Video Streaming
 Gabriel
 2/13/2022
 
-This repository contains the supporting material for the paper
-/Intent-based Satisfaction Modeling – From Music to Video Streaming/.
+  - [1 libraries](#libraries)
+  - [2 data prep](#data-prep)
+      - [2.1 Trivial Fake Data](#trivial-fake-data)
+      - [2.2 available Vars](#available-vars)
+  - [3 Vizualizations](#vizualizations)
+      - [3.1 Descriptive stats on Behavioral
+        Vars](#descriptive-stats-on-behavioral-vars)
+      - [3.2 The Satisfaction histogram](#the-satisfaction-histogram)
+      - [3.3 Violin Plots](#violin-plots)
+      - [3.4 Corrplots](#corrplots)
+  - [4 Modelling](#modelling)
+      - [4.1 per intent logistic Bayes
+        regression](#per-intent-logistic-bayes-regression)
 
-# libraries
+This repository contains the supporting material for the paper
+*Intent-based Satisfaction Modeling – From Music to Video Streaming*.
+
+In order to run the code, one can clone the repo and then use the .Rmd
+file. Trivial data simulation is provided below instead of real user
+data (GDPR compliance).
+
+# 1 libraries
 
 ``` r
 # data wrangling
@@ -21,27 +39,32 @@ library(purrr)
 # plotting
 library(ggcorrplot)
 library(ggplot2)
+
+# Bayes
+library(tidybayes)
 ```
 
-## one hot encoding of intents
+# 2 data prep
 
-Intents were originally all together in one column
+## 2.1 Trivial Fake Data
+
+This is probably a research topic of its own. This data is only there
+for the code to run. We thus go with the simplest approach, without
+considering correlations between variables.
 
 ``` r
-## repeat one row per intent
-intents <- d[, .(intentHot = unlist(strsplit(intent, " / "))), by = names(d)] # , type.convert = TRUE
-oneHot <- dcast(intents, ... ~ intentHot, fun = length)
-names(oneHot) %<>% str_replace("Inspiration", "Explorative") %>% str_replace("_", " - ")
+possibleIntents <- c('Decisive - catch-up' , ' Decisive - continuewatching' , ' Decisive - livetv' , ' Decisive - specifictitle' , ' Explorative - addwatchlist' , ' Explorative - genre' , ' Explorative - new' , ' Explorative - watchlist')
 
-responded <- oneHot[intent != "",] # remove people who did not answer the second question
-responded <- responded[eval(intents[, .(sessionId, intent)]), on = "sessionId"] # ass intent back in
+behaviorNames <- c('numPlays' , ' timeToFirstPlay' , ' numTrailerPlays' , ' timeToFirstTrailer' , ' nBookmarks' , ' nProfileClicks' , ' nAccounts' , ' nStrips' , ' nSearches' , ' nSeriesDescr' , ' nMoviesDescr' , ' sessionLength')
+  
+N <- 3000
 
-intentsPure <- separate(intents, intentHot, c("group", "intent"), "_")
-intentsPure[, group := str_replace(group, "Inspiration", "Explorative")]
-oneHotPure <- dcast(intentsPure, ... ~ intent, fun = length)
+responded <- data.frame(satisfaction = sample(1:5, N, replace = T)) %>% setDT
+responded[,  (possibleIntents) := sample(0:1, N, replace = T)]
+responded[,  (behaviorNames) := rnegbin(N, mu = 1, theta = 1)]
 ```
 
-## Available Vars
+## 2.2 available Vars
 
 ``` r
 behaviorNames <- names(responded[,numPlays : sessionLength]) # get all behavior variable names
@@ -63,17 +86,19 @@ kable(data.frame("intents" = possibleIntents))
 | Explorative - new           |
 | Explorative - watchlist     |
 
-## Vizualizations
+# 3 Vizualizations
 
-### Descriptive stats on Behavioral Vars
+## 3.1 Descriptive stats on Behavioral Vars
+
+We show log values given the h
 
 ``` r
-d[, ..behaviorNames] %>% gather %>% ggplot(aes(value)) + facet_wrap(~ key, scales = "free") + geom_histogram()
+d[, ..behaviorNames] %>% gather %>% ggplot(aes(log(value))) + facet_wrap(~ key, scales = "free") + geom_histogram()
 ```
 
 ![](README_files/figure-gfm/unnamed-chunk-3-1.png)<!-- -->
 
-#### for the quite satisfied (y \>= 4)
+### 3.1.1 for the quite satisfied (y \>= 4)
 
 ``` r
 intents[satisfactionBin == 1, sessionLengthByHit:nStrips] %>%
@@ -86,7 +111,7 @@ intents[satisfactionBin == 1, sessionLengthByHit:nStrips] %>%
 
 ![](README_files/figure-gfm/unnamed-chunk-4-1.png)<!-- -->
 
-#### for the less satisfied (y\<4)
+### 3.1.2 for the less satisfied (y\<4)
 
 ``` r
 intents[satisfactionBin == 0, sessionLengthByHit:nStrips] %>%
@@ -99,7 +124,7 @@ intents[satisfactionBin == 0, sessionLengthByHit:nStrips] %>%
 
 ![](README_files/figure-gfm/unnamed-chunk-5-1.png)<!-- -->
 
-### The Satisfaction histogram
+## 3.2 The Satisfaction histogram
 
 ``` r
 cbPalette <- c("#000000", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
@@ -113,12 +138,17 @@ ggplot(d, aes(x=satisfaction, y = ..count.., fill = satisfaction)) +
 
 ![](README_files/figure-gfm/unnamed-chunk-6-1.png)<!-- -->
 
-### Violin Plots
+## 3.3 Violin Plots
 
-#### Violins of Satisfaction and Intents
+### 3.3.1 Violins of Satisfaction and Intents
 
 ``` r
-ggplot(intentsPure, aes(intent, satisfaction, fill = factor(group))) + geom_violin() +
+ggplot(intentsPure, aes(intent, satisfaction, fill = factor(group))) + 
+  # stat_summary(fun.y=mean, geom="point", shape=23, size=2) +
+  geom_violin() +
+  stat_summary(fun.y=mean, geom="point") +
+  # geom_jitter(shape=16, position=position_jitter(0.2), alpha = 1) +
+  # geom_boxplot(width=0.1) +
   theme_classic() +
   theme(axis.text.x = element_text(angle = 45, hjust=1, size = 14)) +
   theme(axis.text.y = element_text(size = 14)) +
@@ -132,12 +162,12 @@ ggplot(intentsPure, aes(intent, satisfaction, fill = factor(group))) + geom_viol
         strip.text = element_text(size = 14),# Make facet label background white.
         axis.title.x=element_blank(),
         axis.title.y=element_text(size = 14))  +
-  scale_fill_manual(values = cbPalette[c(2,6)])
+  scale_fill_manual(values = cbPalette[c(7,8)])
 ```
 
 ![](README_files/figure-gfm/unnamed-chunk-7-1.png)<!-- -->
 
-#### Violins of Satisfaction and Behavioral Variables
+### 3.3.2 Violins of Satisfaction and Behavioral Variables
 
 ``` r
 satBehavLong <- melt(intents, id.vars = c("sessionId", "satisfaction"),
@@ -155,7 +185,7 @@ ggplot(satBehavLong[value >= 1],
 
 ![](README_files/figure-gfm/unnamed-chunk-8-1.png)<!-- -->
 
-### Corrplots
+## 3.4 Corrplots
 
 ``` r
 ## cor plot data prep
@@ -165,17 +195,18 @@ corrIntentBehav <- cor(oneHot[, `Decisive - catch-up`:`Explorative - watchlist`]
 p.mat <- psych::corr.test(oneHot[, `Decisive - catch-up`:`Explorative - watchlist`],
                        oneHot[, ..behaviorNames]) #, adjust="none")
 
-normCorr <- (corrIntentBehav > 0) * corrIntentBehav / max(corrIntentBehav) -
-  (corrIntentBehav < 0) * corrIntentBehav / min(corrIntentBehav)
+scaledCorr <- corrIntentBehav * 10
 ```
 
 The original corrplot
 
 ``` r
-ggcorrplot(normCorr, show.legend=T) + # lab = TRUE
-  scale_fill_gradientn(colours = c("darkblue","white","red"),
-                       values = scales::rescale(c(min(corrIntentBehav), 0, max(corrIntentBehav))),
-                       labels = c(-0.10, 0.05, 0, 0.05, 0.10))
+ggcorrplot(scaledCorr, show.legend=T) + # lab = TRUE
+  scale_fill_gradientn("",
+                       colours = c("darkblue","white","red"),
+                       values = scales::rescale(c(min(scaledCorr), 0, max(scaledCorr))),
+                       labels = c(round(min(scaledCorr), 1), -0.60, 0,
+                                  0.60, round(max(scaledCorr), 1)))
 ```
 
 ![](README_files/figure-gfm/unnamed-chunk-9-1.png)<!-- -->
@@ -184,10 +215,143 @@ The corrplot with significance testing (corrected for multiple testing,
 significance level 0.05). A cross indicates insignificnt correlations.
 
 ``` r
-ggcorrplot(normCorr, show.legend=T, p.mat = p.mat$p, pch.cex = 2) + # lab = TRUE
-  scale_fill_gradientn(colours = c("darkblue","white","red"),
-                       values = scales::rescale(c(min(corrIntentBehav), 0, max(corrIntentBehav))),
-                       labels = c(-0.10, 0.05, 0, 0.05, 0.10))
+ggcorrplot(scaledCorr, show.legend=T, p.mat = p.mat$p, pch.cex = 2) + # lab = TRUE
+  scale_fill_gradientn("",
+                       colours = c("darkblue","white","red"),
+                       values = scales::rescale(c(min(scaledCorr), 0, max(scaledCorr))),
+                       labels = c(round(min(scaledCorr), 1), -0.60, 0,
+                                  0.60, round(max(scaledCorr), 1)))
 ```
 
 ![](README_files/figure-gfm/unnamed-chunk-10-1.png)<!-- -->
+
+# 4 Modelling
+
+5-fold trainval / test (80 / 20 %). For each trainval set, 5-fold tain /
+val (80 / 20 %).
+
+``` r
+source("utils.R")
+
+methodsParams <- list("w/o intent" = list(m = "logistic", withIntent = F, RE = F),
+                      "w intent"  = list(m = "logistic", withIntent = T, RE = F),
+                      "multilevel"  = list(m = "logistic", withIntent = T, RE = T),
+                      "xgboost w/o intent" = list(m = "xgboost", withIntent = F, RE = F),
+                      "xgboost w intent" = list(m = "xgboost", withIntent = T, RE = F))
+
+overallResults <-
+  rbind(
+    crossT(5, 5, responded, response = "satisfactionBin", methodsParams),
+    crossTByIntent(5,5, response = "satisfactionBin")
+  )
+
+satResults <-
+  rbind(
+    crossT(5, 5, responded, response = "satisfied", methodsParams),
+    crossTByIntent(5,5, response = "satisfied")
+  )
+
+
+unsatResults <-
+  rbind(
+    crossT(5, 5, responded, response = "dissatisfied", methodsParams),
+    crossTByIntent(5,5, response = "dissatisfied")
+  )
+
+results <- cbind(overallResults[,1],
+                 overallResults[,Accuracy:F1],
+                 satResults[,Accuracy:F1],
+                 unsatResults[,Accuracy:F1])
+
+kbl(results, format="latex", booktabs = T, escape = F, linesep = linesep(11)) %>%
+  add_header_above(
+    c(" " = 1,
+      "Overall ($\\\\mathds{1}_{\\\\hat{\\\\mathbf{y}} \\\\geq 4}$)" = 4,
+      "Satisfied ($\\\\mathds{1}_{\\\\hat{\\\\mathbf{y}} = 5}$)" = 4,
+      "Unsatisfied ($\\\\mathds{1}_{\\\\hat{\\\\mathbf{y}} = 1}$)" = 4),
+    escape = F)
+```
+
+## 4.1 per intent logistic Bayes regression
+
+### 4.1.1 modelling
+
+``` r
+for (i in possibleIntents){
+  logisticBayes <- brm(
+    formula = as.formula(paste("satisfactionBin ~", behaviors)),
+    data = responded[intent == i],
+    family = bernoulli(link = logit),
+    file = paste0("models/logistic_", i, ".rds"),
+    chains = 4, cores = 4, backend = "cmdstanr"
+  )
+}
+
+logisticBayes <- do.call('rbind', lapply(list.files("models", full.names = TRUE, pattern = "logistic_"), readRDS))
+```
+
+### 4.1.2 plotting
+
+``` r
+j <- 1
+for (i in possibleIntentsOld){
+  thisBayes <- readRDS(paste0("../intentBasedClustering/models/logistic_", i, ".rds")) %>%
+    tidy_draws()
+  notConverged <- thisBayes %>% summarise_draws() %>%
+    setDT() %>% .[rhat > 1.05 & grepl("b_", variable) , variable]
+  
+  thisBayes %<>%
+    gather_variables() %>%
+    setDT() %>% .[!.variable %in% notConverged] %>%
+    .[, var := str_replace(.variable, "b_", "")] %>%
+    .[var %in% behaviorNames, ] %>%
+    .[, satisfaction := .value] %>%
+      .[, intent := i] %>%
+    .[]
+
+  if(j == 1){
+    logisticBayes <- thisBayes
+  } else {
+    logisticBayes <- rbind(logisticBayes, thisBayes)
+  }
+  j <- j + 1
+}
+
+bayesModels <- list()
+
+
+j <- 1
+for (i in possibleIntentsOld){
+  bayesModels[[j]] <- readRDS(paste0("../intentBasedClustering/models/logistic_", i, ".rds"))
+  j <- j + 1
+}
+
+
+logisticBayes[, index := .I]
+logisticBayes[, varIntent := paste0(var, intent)]
+
+medians <- logisticBayes[!var %in% c("numTrailerPlays")] %>% # "timeToFirstTrailer", 
+  .[, .(intent = intent, median = abs(median(satisfaction))), by = .(varIntent)]
+medians <- unique(medians)
+topVars <- setorder(medians, intent, -median)[, head(.SD, 3), by = intent][, varIntent]
+
+logisticBayes$intent %<>% str_replace("Inspiration", "Explorative") %>% str_replace("_", " - ")
+
+# Daltonian palette https://jfly.uni-koeln.de/color/
+cbp1 <- c("#999999", "#E69F00", "#56B4E9", "#009E73",
+          "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
+
+logisticBayes[varIntent %in% topVars] %>%
+  ggplot(aes(y = var, x = satisfaction, fill = var)) +
+  facet_wrap(~intent, ncol = 4, scales = "free") +
+  ## stat_gradientinterval() +
+  stat_halfeye(scale = 1.5, point_size = 1.5) +
+  geom_vline(xintercept = 0, linetype="dashed") +
+  theme_classic() +
+  theme(axis.title.y=element_blank()) +
+  scale_fill_manual(values=cbp1) +
+  theme(legend.position="none", strip.background = element_rect(fill = "white", color = "white")) +
+  scale_x_continuous(labels = scales::number_format(accuracy = 0.1))
+```
+
+![](README_files/figure-gfm/unnamed-chunk-13-1.png)<!-- -->
