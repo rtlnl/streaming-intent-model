@@ -1,7 +1,6 @@
 ---
 title: "Intent-based Satisfaction Modeling – From Music to Video Streaming"
 author: "Gabriel"
-date: "2/13/2022"
 output: 
   rmarkdown::github_document:
     number_sections: true
@@ -39,7 +38,7 @@ library(tidybayes)
 
 ```
 
-# data prep
+# Data prep
 
 ```{r dataLoading, echo=FALSE}
 
@@ -96,6 +95,9 @@ responded[,  (possibleIntents) := sample(0:1, N, replace = T)]
 responded[,  (behaviorNames) := rnegbin(N, mu = 1, theta = 1)]
 ```
 
+## Behavioral data
+
+If you are running a website and are tracking users with Google Analytics, the Bigquery code [here](intentRetrieval.sql), will allow you to retrieve the same behavioral data as ours. Custom dimensions are proper to our platform and will differ depending on your setup.
 
 ## available Vars
 

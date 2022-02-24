@@ -1,12 +1,12 @@
 Intent-based Satisfaction Modeling – From Music to Video Streaming
 ================
 Gabriel
-2/13/2022
 
   - [1 libraries](#libraries)
-  - [2 data prep](#data-prep)
+  - [2 Data prep](#data-prep)
       - [2.1 Trivial Fake Data](#trivial-fake-data)
-      - [2.2 available Vars](#available-vars)
+      - [2.2 Behavioral data](#behavioral-data)
+      - [2.3 available Vars](#available-vars)
   - [3 Vizualizations](#vizualizations)
       - [3.1 Descriptive stats on Behavioral
         Vars](#descriptive-stats-on-behavioral-vars)
@@ -45,7 +45,7 @@ library(ggplot2)
 library(tidybayes)
 ```
 
-# 2 data prep
+# 2 Data prep
 
 ## 2.1 Trivial Fake Data
 
@@ -65,7 +65,14 @@ responded[,  (possibleIntents) := sample(0:1, N, replace = T)]
 responded[,  (behaviorNames) := rnegbin(N, mu = 1, theta = 1)]
 ```
 
-## 2.2 available Vars
+## 2.2 Behavioral data
+
+If you are running a website and are tracking users with Google
+Analytics, the Bigquery code [here](intentRetrieval.sql), will allow you
+to retrieve the same behavioral data as ours. Custom dimensions are
+proper to our platform and will differ depending on your setup.
+
+## 2.3 available Vars
 
 ``` r
 behaviorNames <- names(responded[,numPlays : sessionLength]) # get all behavior variable names
