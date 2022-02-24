@@ -91,13 +91,14 @@ kable(data.frame("intents" = possibleIntents))
 
 ## 3.1 Descriptive stats on Behavioral Vars
 
-We show log values given the h
+We show log values given the skewness of the data
 
 ``` r
-d[, ..behaviorNames] %>% gather %>% ggplot(aes(log(value))) + facet_wrap(~ key, scales = "free") + geom_histogram()
+d[, ..behaviorNames] %>% gather %>% ggplot(aes(log(value))) + 
+  facet_wrap(~ key, scales = "free") + geom_histogram()
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-3-1.png)<!-- -->
+![](README_files/figure-gfm/log%20descriptive-1.png)<!-- -->
 
 ### 3.1.1 for the quite satisfied (y \>= 4)
 
@@ -105,12 +106,12 @@ d[, ..behaviorNames] %>% gather %>% ggplot(aes(log(value))) + facet_wrap(~ key, 
 intents[satisfactionBin == 1, sessionLengthByHit:nStrips] %>%
   keep(is.numeric) %>% 
   gather() %>% 
-  ggplot(aes(value)) +
+  ggplot(aes(log(value))) +
     facet_wrap(~ key, scales = "free") +
     geom_histogram()
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-4-1.png)<!-- -->
+![](README_files/figure-gfm/log%20satisfied%20descriptive-1.png)<!-- -->
 
 ### 3.1.2 for the less satisfied (y\<4)
 
@@ -118,12 +119,12 @@ intents[satisfactionBin == 1, sessionLengthByHit:nStrips] %>%
 intents[satisfactionBin == 0, sessionLengthByHit:nStrips] %>%
   keep(is.numeric) %>% 
   gather() %>% 
-  ggplot(aes(value)) +
+  ggplot(aes(log(value))) +
     facet_wrap(~ key, scales = "free") +
     geom_histogram()
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-5-1.png)<!-- -->
+![](README_files/figure-gfm/log%20unsatisfied%20descriptive-1.png)<!-- -->
 
 ## 3.2 The Satisfaction histogram
 
@@ -137,7 +138,7 @@ ggplot(d, aes(x=satisfaction, y = ..count.., fill = satisfaction)) +
   scale_fill_manual(palette=cbPalette)
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-6-1.png)<!-- -->
+![](README_files/figure-gfm/satisfaction%20histogram-1.png)<!-- -->
 
 ## 3.3 Violin Plots
 
@@ -166,7 +167,7 @@ ggplot(intentsPure, aes(intent, satisfaction, fill = factor(group))) +
   scale_fill_manual(values = cbPalette[c(7,8)])
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-7-1.png)<!-- -->
+![](README_files/figure-gfm/violin%20satisfaction%20intents-1.png)<!-- -->
 
 ### 3.3.2 Violins of Satisfaction and Behavioral Variables
 
@@ -184,7 +185,7 @@ ggplot(satBehavLong[value >= 1],
   scale_fill_brewer(palette="Set1")
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-8-1.png)<!-- -->
+![](README_files/figure-gfm/violin%20satisfaction%20behaviorals-1.png)<!-- -->
 
 ## 3.4 Corrplots
 
@@ -210,7 +211,7 @@ ggcorrplot(scaledCorr, show.legend=T) + # lab = TRUE
                                   0.60, round(max(scaledCorr), 1)))
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-9-1.png)<!-- -->
+![](README_files/figure-gfm/corrplot-1.png)<!-- -->
 
 The corrplot with significance testing (corrected for multiple testing,
 significance level 0.05). A cross indicates insignificnt correlations.
@@ -224,7 +225,7 @@ ggcorrplot(scaledCorr, show.legend=T, p.mat = p.mat$p, pch.cex = 2) + # lab = TR
                                   0.60, round(max(scaledCorr), 1)))
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-10-1.png)<!-- -->
+![](README_files/figure-gfm/corrplot%20test-1.png)<!-- -->
 
 # 4 Modelling
 
@@ -355,4 +356,4 @@ logisticBayes[varIntent %in% topVars] %>%
   scale_x_continuous(labels = scales::number_format(accuracy = 0.1))
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-13-1.png)<!-- -->
+![](README_files/figure-gfm/bayes%20plotting-1.png)<!-- -->

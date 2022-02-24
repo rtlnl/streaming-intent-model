@@ -62,7 +62,7 @@ d[, intent := `Reden_gebruik`]
 
 
 
-```{r, echo=FALSE}
+```{r dataprep, echo=FALSE}
 
 ## one hot encoding of intents (Intents were originally all together in one column)
 ## repeat one row per intent
@@ -72,7 +72,7 @@ possibleIntentsOld <- names(oneHot[,`Decisive_catch-up`:Inspiration_watchlist])
 names(oneHot) %<>% str_replace("Inspiration", "Explorative") %>% str_replace("_", " - ")
 
 responded <- oneHot[intent != "",] # remove people who did not answer the second question
-responded <- responded[eval(intents[, .(sessionId, intent)]), on = "sessionId"] # ass intent back in
+responded <- responded[eval(intents[, .(sessionId, intent)]), on = "sessionId"] # add intent back in
 
 intentsPure <- separate(intents, intentHot, c("group", "intent"), "_")
 intentsPure[, group := str_replace(group, "Inspiration", "Explorative")]
@@ -99,7 +99,7 @@ responded[,  (behaviorNames) := rnegbin(N, mu = 1, theta = 1)]
 
 ## available Vars
 
-```{r}
+```{r available vars}
 behaviorNames <- names(responded[,numPlays : sessionLength]) # get all behavior variable names
 behaviors <- behaviorNames %>% paste(., collapse =" + ") # useful for modelling
 
@@ -112,37 +112,38 @@ kable(data.frame("intents" = possibleIntents))
 
 ## Descriptive stats on Behavioral Vars
 
-We show log values given the h
+We show log values given the skewness of the data
 
-```{r}
-d[, ..behaviorNames] %>% gather %>% ggplot(aes(log(value))) + facet_wrap(~ key, scales = "free") + geom_histogram()
+```{r log descriptive}
+d[, ..behaviorNames] %>% gather %>% ggplot(aes(log(value))) + 
+  facet_wrap(~ key, scales = "free") + geom_histogram()
 ```
 
 ### for the quite satisfied (y >= 4)
 
-```{r}
+```{r log satisfied descriptive}
 intents[satisfactionBin == 1, sessionLengthByHit:nStrips] %>%
   keep(is.numeric) %>% 
   gather() %>% 
-  ggplot(aes(value)) +
+  ggplot(aes(log(value))) +
     facet_wrap(~ key, scales = "free") +
     geom_histogram()
 ```
 
 ### for the less satisfied (y<4)
 
-```{r}
+```{r log unsatisfied descriptive}
 intents[satisfactionBin == 0, sessionLengthByHit:nStrips] %>%
   keep(is.numeric) %>% 
   gather() %>% 
-  ggplot(aes(value)) +
+  ggplot(aes(log(value))) +
     facet_wrap(~ key, scales = "free") +
     geom_histogram()
 ```
 
 ## The Satisfaction histogram
 
-```{r}
+```{r satisfaction histogram}
 
 cbPalette <- c("#000000", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
 
@@ -158,7 +159,7 @@ ggplot(d, aes(x=satisfaction, y = ..count.., fill = satisfaction)) +
 
 ### Violins of Satisfaction and Intents
 
-```{r}
+```{r violin satisfaction intents}
 ggplot(intentsPure, aes(intent, satisfaction, fill = factor(group))) + 
   # stat_summary(fun.y=mean, geom="point", shape=23, size=2) +
   geom_violin() +
@@ -184,7 +185,7 @@ ggplot(intentsPure, aes(intent, satisfaction, fill = factor(group))) +
 
 ### Violins of Satisfaction and Behavioral Variables
 
-```{r}
+```{r violin satisfaction behaviorals}
 
 satBehavLong <- melt(intents, id.vars = c("sessionId", "satisfaction"),
                      measure.vars = behaviorNames,
@@ -217,7 +218,7 @@ scaledCorr <- corrIntentBehav * 10
 
 The original corrplot
 
-```{r}
+```{r corrplot}
 ggcorrplot(scaledCorr, show.legend=T) + # lab = TRUE
   scale_fill_gradientn("",
                        colours = c("darkblue","white","red"),
@@ -229,7 +230,7 @@ ggcorrplot(scaledCorr, show.legend=T) + # lab = TRUE
 
 The corrplot with significance testing (corrected for multiple testing, significance level 0.05). A cross indicates insignificnt correlations.
 
-```{r}
+```{r corrplot test}
 
 ggcorrplot(scaledCorr, show.legend=T, p.mat = p.mat$p, pch.cex = 2) + # lab = TRUE
   scale_fill_gradientn("",
@@ -244,7 +245,7 @@ ggcorrplot(scaledCorr, show.legend=T, p.mat = p.mat$p, pch.cex = 2) + # lab = TR
 
 5-fold trainval / test (80 / 20 %). For each trainval set, 5-fold tain / val (80 / 20 %).
 
-```{r eval= F}
+```{r modelling, eval= F}
 source("utils.R")
 
 methodsParams <- list("w/o intent" = list(m = "logistic", withIntent = F, RE = F),
@@ -291,7 +292,7 @@ kbl(results, format="latex", booktabs = T, escape = F, linesep = linesep(11)) %>
 
 ### modelling
 
-```{r eval = F}
+```{r bayes modelling, eval = F}
 
 for (i in possibleIntents){
   logisticBayes <- brm(
@@ -308,7 +309,7 @@ logisticBayes <- do.call('rbind', lapply(list.files("models", full.names = TRUE,
 
 ### plotting
 
-```{r}
+```{r bayes plotting}
 
 
 j <- 1
