@@ -68,9 +68,10 @@ responded[,  (behaviorNames) := rnegbin(N, mu = 1, theta = 1)]
 ## 2.2 Behavioral data
 
 If you are running a website and are tracking users with Google
-Analytics, the Bigquery code [here](intentRetrieval.sql), will allow you
-to retrieve the same behavioral data as ours. Custom dimensions are
-proper to our platform and will differ depending on your setup.
+Analytics, the Bigquery code [here](source/intentRetrieval.sql), will
+allow you to retrieve the same behavioral data as ours. Custom
+dimensions are proper to our platform and will differ depending on your
+setup.
 
 ## 2.3 available Vars
 
@@ -80,8 +81,16 @@ behaviors <- behaviorNames %>% paste(., collapse =" + ") # useful for modelling
 
 possibleIntents <- names(responded[,`Decisive - catch-up`:`Explorative - watchlist`])
 
-kable(data.frame("intents" = possibleIntents))
+kable(list(data.frame("intents" = possibleIntents), data.frame("behaviorals" = behaviorNames)))
 ```
+
+<table class="kable_wrapper">
+
+<tbody>
+
+<tr>
+
+<td>
 
 | intents                     |
 | :-------------------------- |
@@ -93,6 +102,33 @@ kable(data.frame("intents" = possibleIntents))
 | Explorative - genre         |
 | Explorative - new           |
 | Explorative - watchlist     |
+
+</td>
+
+<td>
+
+| behaviorals        |
+| :----------------- |
+| numPlays           |
+| timeToFirstPlay    |
+| numTrailerPlays    |
+| timeToFirstTrailer |
+| nBookmarks         |
+| nProfileClicks     |
+| nAccounts          |
+| nStrips            |
+| nSearches          |
+| nSeriesDescr       |
+| nMoviesDescr       |
+| sessionLength      |
+
+</td>
+
+</tr>
+
+</tbody>
+
+</table>
 
 # 3 Vizualizations
 
@@ -221,7 +257,7 @@ ggcorrplot(scaledCorr, show.legend=T) + # lab = TRUE
 ![](README_files/figure-gfm/corrplot-1.png)<!-- -->
 
 The corrplot with significance testing (corrected for multiple testing,
-significance level 0.05). A cross indicates insignificnt correlations.
+significance level 0.05). A cross indicates insignificant correlations.
 
 ``` r
 ggcorrplot(scaledCorr, show.legend=T, p.mat = p.mat$p, pch.cex = 2) + # lab = TRUE
@@ -240,7 +276,7 @@ ggcorrplot(scaledCorr, show.legend=T, p.mat = p.mat$p, pch.cex = 2) + # lab = TR
 val (80 / 20 %).
 
 ``` r
-source("utils.R")
+source("source/utils.R")
 
 methodsParams <- list("w/o intent" = list(m = "logistic", withIntent = F, RE = F),
                       "w intent"  = list(m = "logistic", withIntent = T, RE = F),
