@@ -16,6 +16,7 @@ Gabriel
   - [4 Modelling](#modelling)
       - [4.1 per intent logistic Bayes
         regression](#per-intent-logistic-bayes-regression)
+      - [4.2 Chain PLots](#chain-plots)
 
 This repository contains the supporting material for the paper
 *Intent-based Satisfaction Modeling – From Music to Video Streaming*.
@@ -43,6 +44,7 @@ library(ggplot2)
 
 # Bayes
 library(tidybayes)
+library(bayesplot) # plot bayesian model
 ```
 
 # 2 Data prep
@@ -172,13 +174,15 @@ intents[satisfactionBin == 0, sessionLengthByHit:nStrips] %>%
 ## 3.2 The Satisfaction histogram
 
 ``` r
-cbPalette <- c("#000000", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
+# Daltonian palette https://jfly.uni-koeln.de/color/
+cbp1 <- c("#999999", "#E69F00", "#56B4E9", "#009E73",
+          "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
+
 
 ## hist
 ggplot(d, aes(x=satisfaction, y = ..count.., fill = satisfaction)) +
   geom_bar(width = 0.5) + theme_classic() +
-  theme(text = element_text(size = 14)) +
-  scale_fill_manual(palette=cbPalette)
+  theme(text = element_text(size = 14))
 ```
 
 ![](README_files/figure-gfm/satisfaction%20histogram-1.png)<!-- -->
@@ -207,7 +211,7 @@ ggplot(intentsPure, aes(intent, satisfaction, fill = factor(group))) +
         strip.text = element_text(size = 14),# Make facet label background white.
         axis.title.x=element_blank(),
         axis.title.y=element_text(size = 14))  +
-  scale_fill_manual(values = cbPalette[c(7,8)])
+  scale_fill_manual(values = cbp1[c(7,8)])
 ```
 
 ![](README_files/figure-gfm/violin%20satisfaction%20intents-1.png)<!-- -->
@@ -338,12 +342,17 @@ logisticBayes <- do.call('rbind', lapply(list.files("models", full.names = TRUE,
 ### 4.1.2 plotting
 
 ``` r
+posteriors <- list()
+
 j <- 1
-for (i in possibleIntentsOld){
-  thisBayes <- readRDS(paste0("../intentBasedClustering/models/logistic_", i, ".rds")) %>%
-    tidy_draws()
+for (i in possibleIntentsOrigNames){
+  thisBayes <- readRDS(paste0("../intentBasedClustering/models/logistic_", i, ".rds"))
+  thisPosterior <- thisBayes %>% as.array
+  thisBayes %<>% tidy_draws()
   notConverged <- thisBayes %>% summarise_draws() %>%
     setDT() %>% .[rhat > 1.05 & grepl("b_", variable) , variable]
+
+  posteriors[[j]] <- thisPosterior %>% .[,,!dimnames(.)$variable %in% c(notConverged, "lp__", "Intercept")]
   
   thisBayes %<>%
     gather_variables() %>%
@@ -362,16 +371,6 @@ for (i in possibleIntentsOld){
   j <- j + 1
 }
 
-bayesModels <- list()
-
-
-j <- 1
-for (i in possibleIntentsOld){
-  bayesModels[[j]] <- readRDS(paste0("../intentBasedClustering/models/logistic_", i, ".rds"))
-  j <- j + 1
-}
-
-
 logisticBayes[, index := .I]
 logisticBayes[, varIntent := paste0(var, intent)]
 
@@ -381,10 +380,6 @@ medians <- unique(medians)
 topVars <- setorder(medians, intent, -median)[, head(.SD, 3), by = intent][, varIntent]
 
 logisticBayes$intent %<>% str_replace("Inspiration", "Explorative") %>% str_replace("_", " - ")
-
-# Daltonian palette https://jfly.uni-koeln.de/color/
-cbp1 <- c("#999999", "#E69F00", "#56B4E9", "#009E73",
-          "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
 
 logisticBayes[varIntent %in% topVars] %>%
   ggplot(aes(y = var, x = satisfaction, fill = var)) +
@@ -400,3 +395,7 @@ logisticBayes[varIntent %in% topVars] %>%
 ```
 
 ![](README_files/figure-gfm/bayes%20plotting-1.png)<!-- -->
+
+## 4.2 Chain PLots
+
+![](README_files/figure-gfm/chains-1.png)<!-- -->![](README_files/figure-gfm/chains-2.png)<!-- -->![](README_files/figure-gfm/chains-3.png)<!-- -->![](README_files/figure-gfm/chains-4.png)<!-- -->![](README_files/figure-gfm/chains-5.png)<!-- -->![](README_files/figure-gfm/chains-6.png)<!-- -->![](README_files/figure-gfm/chains-7.png)<!-- -->![](README_files/figure-gfm/chains-8.png)<!-- -->
