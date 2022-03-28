@@ -1,0 +1,65 @@
+\documentclass{paper}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+
+\usepackage{dsfont}
+% \usepackage{amsmath}
+
+\usepackage[leqno]{amsmath}
+% \makeatletter
+% \newcommand{\leqnomode}{\tagsleft@true\let\veqno\@@leqno}
+% \newcommand{\reqnomode}{\tagsleft@false\let\veqno\@@eqno}
+% \makeatother
+
+% \usepackage{mathtools}
+% \newtagform{mytag}{\llap\bgroup(}{)\egroup}
+
+
+\begin{document}
+
+\begin{equation*}
+\mathbf{y}_{overall} = \mathds{1}_{\hat{y} \geq 4}, 
+\hspace*{2.5mm} 
+\mathbf{y}_{satisfied} = \mathds{1}_{\hat{y} = 5}, 
+\hspace*{2.5mm} 
+\mathbf{y}_{dissatisfied} = \mathds{1}_{\hat{y} = 1}
+\end{equation*}
+
+% \usetagform{mytag}
+
+\makeatletter
+\def\maketag@@@#1{\hbox{\hspace{2cm}\m@th\normalfont#1}}
+\makeatother
+
+\begin{equation*}
+  \begin{gathered}
+    logit(\mathbf{y}) = ln\left(\frac{\mathbf{y}}{1-\mathbf{y}}\right) = \beta_0 + \sum_j \beta_j \mathbf{b}_j
+    \tag{w/o intent}
+    \end{gathered}
+\end{equation*}
+
+
+\begin{equation}
+  logit(\mathbf{y}) = \beta_0 + \sum_j \beta_j \mathbf{b}_j + \sum_k \delta_k \mathbf{d}_k
+  \tag{w intent}
+\end{equation}
+
+\begin{equation}
+  logit(\mathbf{y}^d) = \beta^{d}_{0} + \sum_j \beta^{d}_{j} \mathbf{b}^{d}_{j}
+    \tag{catch-up, ...}
+\end{equation}
+
+\vspace*{-\abovedisplayskip}
+
+
+\begin{align*}
+  % \begin{split}
+logit(\mathbf{y}) & = \mathbf{\delta}_k + \sum_j \beta_j \mathbf{b}_j\\
+  \mathbf{\delta}_k & \sim N(\mu_{\delta}, \sigma^2_{\delta})
+                      \tag{multiLevel}
+% \end{split}
+\end{align*}
+
+
+\end{document}

@@ -3,7 +3,7 @@ title: |
   ![](images/titleimage.png) \
   Intent-based Satisfaction Modeling \
   From Music to Video Streaming
-author: "Gabriel, Roland, Brenda, Isabella and Daniella"
+author: "Gabriel, Rishabh, Daan, Maarten"
 output: 
   slidy_presentation:
   # html_document:
@@ -52,6 +52,13 @@ output:
 knitr::include_graphics("../intentBasedClustering/intentBased/main.pdf") #,out.width="10%",fig.show='hold',fig.align='center'
 ``` 
 
+
+# But what is Videoland?
+
+
+```{r, fig.align='center', out.width="60%", fig.align='center', echo=FALSE}
+knitr::include_graphics("images/VLHome.png")
+```
 
 # Behaviorals, Intents and Satisfaction
 
@@ -152,6 +159,27 @@ possibleIntents <- names(responded[,`Decisive - catch-up`:`Explorative - watchli
 # kable(list(data.frame("intents" = possibleIntents), data.frame("behaviorals" = behaviorNames)))
 ```
 
+# Data Collection
+
+
+:::: {style="display: flex;"}
+
+::: {}
+```{r, fig.align='center', out.width="60%", echo=FALSE}
+knitr::include_graphics(c("images/survey-satisfaction.png", "images/survey-intent.png"))
+#knitr::include_graphics(c("image"))
+```
+:::
+
+::: {}
+```{r, fig.align='center', out.width="60%", echo=FALSE}
+knitr::include_graphics(c("images/user-journey.png"))
+#knitr::include_graphics(c("image"))
+```
+:::
+
+::::
+
 # Different Needs: Explorative VS Decisive Intents
 
 ```{r out.width = "60%", fig.align = "center"}
@@ -251,32 +279,41 @@ for (i in interestingUsers){
 
 ---
 
-# Intents (Usabilla) VS Behaviorals (Google Analytics)
+# Spotify VS Videoland
 
-```{r corrPrep}
-## cor plot data prep
-corrIntentBehav <- cor(oneHot[, `Decisive - catch-up`:`Explorative - watchlist`],
-                       oneHot[, ..behaviorNames])
-
-p.mat <- psych::corr.test(oneHot[, `Decisive - catch-up`:`Explorative - watchlist`],
-                       oneHot[, ..behaviorNames]) #, adjust="none")
-
-scaledCorr <- corrIntentBehav * 10
-
-
+```{r, fig.align='center', out.width="100%", fig.align='center', echo=FALSE}
+knitr::include_graphics("images/spotifyVideoland.png")
 ```
 
-<!-- The original corrplot -->
 
-```{r corrplot, out.width = "60%", fig.align = "center"}
-ggcorrplot(scaledCorr, show.legend=T) + # lab = TRUE
-  scale_fill_gradientn("",
-                       colours = c("darkblue","white","red"),
-                       values = scales::rescale(c(min(scaledCorr), 0, max(scaledCorr))),
-                       labels = c(round(min(scaledCorr), 1), -0.60, 0,
-                                  0.60, round(max(scaledCorr), 1)))
+---
 
-```
+<!-- # Intents (Usabilla) VS Behaviorals (Google Analytics) -->
+
+<!-- ```{r corrPrep} -->
+<!-- ## cor plot data prep -->
+<!-- corrIntentBehav <- cor(oneHot[, `Decisive - catch-up`:`Explorative - watchlist`], -->
+<!--                        oneHot[, ..behaviorNames]) -->
+
+<!-- p.mat <- psych::corr.test(oneHot[, `Decisive - catch-up`:`Explorative - watchlist`], -->
+<!--                        oneHot[, ..behaviorNames]) #, adjust="none") -->
+
+<!-- scaledCorr <- corrIntentBehav * 10 -->
+
+
+<!-- ``` -->
+
+<!-- <!-- The original corrplot --> -->
+
+<!-- ```{r corrplot, out.width = "60%", fig.align = "center"} -->
+<!-- ggcorrplot(scaledCorr, show.legend=T) + # lab = TRUE -->
+<!--   scale_fill_gradientn("", -->
+<!--                        colours = c("darkblue","white","red"), -->
+<!--                        values = scales::rescale(c(min(scaledCorr), 0, max(scaledCorr))), -->
+<!--                        labels = c(round(min(scaledCorr), 1), -0.60, 0, -->
+<!--                                   0.60, round(max(scaledCorr), 1))) -->
+
+<!-- ``` -->
 
 
 
@@ -295,6 +332,30 @@ ggplot(d, aes(x=satisfaction, y = ..count.., fill = satisfaction)) +
   geom_bar(width = 0.5) + theme_classic() +
   theme(text = element_text(size = 14))
 
+```
+
+---
+
+# a linear regression
+
+```{r, fig.align='center', out.width="60%", fig.align='center', echo=FALSE}
+# knitr::include_graphics(c("images/math_definitions.jpg", "images/math_logistic-regression.jpg",
+#                         "images/math_regression-per-intent.jpg", "images/math_logistic-intent.jpg",
+#                         "images/math_global-intent.jpg"))
+
+knitr::include_graphics("images/all_equations.jpg")
+```
+
+---
+
+# the results
+
+```{r,out.width="100%", out.height="100%", echo=FALSE}
+# knitr::include_graphics(c("images/math_definitions.jpg", "images/math_logistic-regression.jpg",
+#                         "images/math_regression-per-intent.jpg", "images/math_logistic-intent.jpg",
+#                         "images/math_global-intent.jpg"))
+
+knitr::include_graphics("images/table4.jpg")
 ```
 
 ---
@@ -499,13 +560,6 @@ logisticBayes[varIntent %in% topVars] %>%
 knitr::include_graphics("images/SketchCropped.png")
 ```
 
----
-
-# Spotify VS Videoland
-
-```{r, fig.align='center', out.width="100%", fig.align='center', echo=FALSE}
-knitr::include_graphics("images/spotifyVideoland.png")
-```
 
 <!-- # Vizualizations -->
 
