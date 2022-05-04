@@ -1,6 +1,6 @@
 ---
 title: "Intent-based Satisfaction Modeling – From Music to Video Streaming"
-author: "Gabriel"
+author: "Anonymized"
 output: 
   rmarkdown::github_document:
     number_sections: true
