@@ -21,10 +21,10 @@ Gabriel
 This repository contains the supporting material for the paper
 *Intent-based Satisfaction Modeling – From Music to Video Streaming*.
 
-The plots shown here are made with real Videoland data. In order to run
-the code yourself, clone the repo and run the .Rmd file. Trivial data
-simulation is provided below instead of real user data (GDPR
-compliance). You can expect therefore the plots to change.
+The plots shown here are made with real OurPlatform \[anonymized\] data.
+In order to run the code yourself, clone the repo and run the .Rmd file.
+Trivial data simulation is provided below instead of real user data
+(GDPR compliance). You can expect therefore the plots to change.
 
 # 1 libraries
 
