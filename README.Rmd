@@ -10,7 +10,14 @@ output:
 
 This repository contains the supporting material for the paper *Intent-based Satisfaction Modeling – From Music to Video Streaming*.
 
-The plots shown here are made with real OurPlatform [anonymized] data. In order to run the code yourself, clone the repo and run the .Rmd file. Trivial data simulation is provided below instead of real user data (GDPR compliance). You can expect therefore the plots to change.
+The plots shown here are made with real OurPlatform [anonymized] data. In order to run the code yourself, download the repo and run the .Rmd file. Trivial data simulation is provided below instead of real user data (GDPR compliance). You can expect therefore the plots to change.
+
+*Change this value to false, to make the code executable with fake data*
+
+```{r}
+realData = T
+```
+
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = T, warning = F, message = F)
@@ -28,6 +35,7 @@ library(tidyr) # separate
 library(knitr) # especially to make tables with kable
 library(dplyr)
 library(purrr)
+library(MASS)
 
 # plotting
 library(ggcorrplot)
@@ -39,9 +47,23 @@ library(bayesplot) # plot bayesian model
 
 ```
 
+
+
+# Replicability Contributions
+
+```{r, echo =F}
+data.frame(`sharing policy` = c("modelling code", "data retrieval code", "experimental design"),
+  `Mehrotra et. al. 2019` = c("✗", "✗", "✗"),
+  `this paper` = c("✓", "✓", "✓"), check.names = FALSE) %>%
+  kable(align=c('l', 'c', 'c'))
+```
+
+We thank Rishabh Mehrotra for helping in re-contextualizing the original study at Spotify over zoom calls.
+
+
 # Data prep
 
-```{r dataLoading, echo=FALSE}
+```{r dataLoading, echo=FALSE, eval = realData}
 
 d <- read.csv("../intentBasedClustering/data/behavior-survey/20220120.csv") %>% setDT
 
@@ -62,7 +84,7 @@ d[, intent := `Reden_gebruik`]
 
 
 
-```{r dataprep, echo=FALSE}
+```{r dataprep, echo=FALSE, eval = realData}
 
 ## one hot encoding of intents (Intents were originally all together in one column)
 ## repeat one row per intent
@@ -74,9 +96,15 @@ names(oneHot) %<>% str_replace("Inspiration", "Explorative") %>% str_replace("_"
 responded <- oneHot[intent != "",] # remove people who did not answer the second question
 responded <- responded[eval(intents[, .(sessionId, intent)]), on = "sessionId"] # add intent back in
 
-intentsPure <- separate(intents, intentHot, c("group", "intent"), "_")
-intentsPure[, group := str_replace(group, "Inspiration", "Explorative")]
-oneHotPure <- dcast(intentsPure, ... ~ intent, fun = length)
+intentsLong <- separate(intents, intentHot, c("group", "intent"), "_")
+intentsLong[, group := str_replace(group, "Inspiration", "Explorative")]
+oneHotPure <- dcast(intentsLong, ... ~ intent, fun = length)
+
+behaviorNames <- names(responded[,`numPlays` : `sessionLength`]) # get all behavior variable names
+
+behaviorLong <- melt(intents, id.vars = c("sessionId", "satisfaction"),
+                     measure.vars = behaviorNames,
+                     variable.name = "behavioral variable")
 
 ```
 
@@ -84,16 +112,35 @@ oneHotPure <- dcast(intentsPure, ... ~ intent, fun = length)
 
 This is probably a research topic of its own. This data is only there for the code to run. We thus go with the simplest approach, without considering correlations between variables.
 
-```{r simulate data, eval = FALSE}
-possibleIntents <- c('Decisive - catch-up' , ' Decisive - continuewatching' , ' Decisive - livetv' , ' Decisive - specifictitle' , ' Explorative - addwatchlist' , ' Explorative - genre' , ' Explorative - new' , ' Explorative - watchlist')
+```{r simulate data, eval = !realData}
+possibleIntents <- c('Decisive - catch-up' , 'Decisive - continuewatching' , 'Decisive - livetv' , 'Decisive - specifictitle' , 'Explorative - addwatchlist' , 'Explorative - genre' , 'Explorative - new' , 'Explorative - watchlist')
 
-behaviorNames <- c('numPlays' , ' timeToFirstPlay' , ' numTrailerPlays' , ' timeToFirstTrailer' , ' nBookmarks' , ' nProfileClicks' , ' nAccounts' , ' nStrips' , ' nSearches' , ' nSeriesDescr' , ' nMoviesDescr' , ' sessionLength')
+behaviorNames <- c('numPlays' , 'timeToFirstPlay' , 'numTrailerPlays' , 'timeToFirstTrailer' , 'nBookmarks' , 'nProfileClicks' , 'nAccounts' , 'nStrips' , 'nSearches' , 'nSeriesDescr' , 'nMoviesDescr' , 'sessionLength')
   
+possibleIntentsOrigNames <- c("Decisive_catch-up", "Decisive_continuewatching", "Decisive_livetv", "Decisive_specifictitle", "Inspiration_addwatchlist",  "Inspiration_genre", "Inspiration_new", "Inspiration_watchlist")
+
 N <- 3000
 
 responded <- data.frame(satisfaction = sample(1:5, N, replace = T)) %>% setDT
-responded[,  (possibleIntents) := sample(0:1, N, replace = T)]
-responded[,  (behaviorNames) := rnegbin(N, mu = 1, theta = 1)]
+for(i in 1:length(possibleIntents)){
+  responded[,  (possibleIntents[i]) := sample(0:1, N, replace = T)]
+}
+for(i in 1:length(behaviorNames)){
+  responded[,  (behaviorNames[i]) := rnegbin(N, mu = 1, theta = 1)]
+}
+responded[, sessionId := 1:N]
+
+measureVars <- names(responded) %>% .[grep("-",.)]
+idVars <- names(responded) %>% .[-grep("-",.)]
+
+intentsLong <- melt(responded, id.vars = idVars, measure.vars = measureVars, 
+                      variable.name = "intent")[order(sessionId)][value == 1, !"value"] %>%
+                      separate(intent, c("group", "intent"), "-")
+
+behaviorLong <- melt(responded, id.vars = c("sessionId", "satisfaction"),
+                     measure.vars = behaviorNames,
+                     variable.name = "behavioral variable")
+
 ```
 
 ## Behavioral data
@@ -103,7 +150,6 @@ If you are running a website and are tracking users with Google Analytics, the B
 ## available Vars
 
 ```{r available vars}
-behaviorNames <- names(responded[,numPlays : sessionLength]) # get all behavior variable names
 behaviors <- behaviorNames %>% paste(., collapse =" + ") # useful for modelling
 
 possibleIntents <- names(responded[,`Decisive - catch-up`:`Explorative - watchlist`])
@@ -118,30 +164,51 @@ kable(list(data.frame("intents" = possibleIntents), data.frame("behaviorals" = b
 We show log values given the skewness of the data
 
 ```{r log descriptive}
-d[, ..behaviorNames] %>% gather %>% ggplot(aes(log(value))) + 
+
+responded[, ..behaviorNames] %>% gather %>% ggplot(aes(log(value))) + 
   facet_wrap(~ key, scales = "free") + geom_histogram()
+
+
+# d[, ..behaviorNames] %>% gather %>% ggplot(aes(log(value))) + 
+#   facet_wrap(~ key, scales = "free") + geom_histogram()
 ```
 
 ### for the quite satisfied (y >= 4)
 
 ```{r log satisfied descriptive}
-intents[satisfactionBin == 1, sessionLengthByHit:nStrips] %>%
+responded[satisfaction >= 4, sessionLength:nStrips] %>%
   keep(is.numeric) %>% 
   gather() %>% 
   ggplot(aes(log(value))) +
     facet_wrap(~ key, scales = "free") +
     geom_histogram()
+
+# intents[satisfactionBin == 1, sessionLengthByHit:nStrips] %>%
+#   keep(is.numeric) %>% 
+#   gather() %>% 
+#   ggplot(aes(log(value))) +
+#     facet_wrap(~ key, scales = "free") +
+#     geom_histogram()
+
 ```
 
 ### for the less satisfied (y<4)
 
 ```{r log unsatisfied descriptive}
-intents[satisfactionBin == 0, sessionLengthByHit:nStrips] %>%
+
+responded[satisfaction < 4, sessionLength:nStrips] %>%
   keep(is.numeric) %>% 
   gather() %>% 
   ggplot(aes(log(value))) +
     facet_wrap(~ key, scales = "free") +
     geom_histogram()
+
+# intents[satisfactionBin == 0, sessionLengthByHit:nStrips] %>%
+#   keep(is.numeric) %>% 
+#   gather() %>% 
+#   ggplot(aes(log(value))) +
+#     facet_wrap(~ key, scales = "free") +
+#     geom_histogram()
 ```
 
 ## The Satisfaction histogram
@@ -154,7 +221,7 @@ cbp1 <- c("#999999", "#E69F00", "#56B4E9", "#009E73",
 
 
 ## hist
-ggplot(d, aes(x=satisfaction, y = ..count.., fill = satisfaction)) +
+ggplot(responded, aes(x=satisfaction, y = ..count.., fill = satisfaction)) +
   geom_bar(width = 0.5) + theme_classic() +
   theme(text = element_text(size = 14))
 
@@ -165,7 +232,8 @@ ggplot(d, aes(x=satisfaction, y = ..count.., fill = satisfaction)) +
 ### Violins of Satisfaction and Intents
 
 ```{r violin satisfaction intents}
-ggplot(intentsPure, aes(intent, satisfaction, fill = factor(group))) + 
+
+ggplot(intentsLong, aes(intent, satisfaction, fill = factor(group))) + 
   # stat_summary(fun.y=mean, geom="point", shape=23, size=2) +
   geom_violin() +
   stat_summary(fun.y=mean, geom="point") +
@@ -185,6 +253,28 @@ ggplot(intentsPure, aes(intent, satisfaction, fill = factor(group))) +
         axis.title.x=element_blank(),
         axis.title.y=element_text(size = 14))  +
   scale_fill_manual(values = cbp1[c(7,8)])
+
+
+# ggplot(intentsPure, aes(intent, satisfaction, fill = factor(group))) + 
+#   # stat_summary(fun.y=mean, geom="point", shape=23, size=2) +
+#   geom_violin() +
+#   stat_summary(fun.y=mean, geom="point") +
+#   # geom_jitter(shape=16, position=position_jitter(0.2), alpha = 1) +
+#   # geom_boxplot(width=0.1) +
+#   theme_classic() +
+#   theme(axis.text.x = element_text(angle = 45, hjust=1, size = 14)) +
+#   theme(axis.text.y = element_text(size = 14)) +
+#   theme(legend.position="none") +
+#   facet_grid(~group, 
+#              scales = "free_x", # Let the x axis vary across facets.
+#              space = "free_x",  # Let the width of facets vary and force all bars to have the same width.
+#              switch = "x") +
+#   theme(strip.placement = "outside",                      # Place facet labels outside x axis labels.
+#         strip.background = element_rect(fill = "grey90", color = "white"),
+#         strip.text = element_text(size = 14),# Make facet label background white.
+#         axis.title.x=element_blank(),
+#         axis.title.y=element_text(size = 14))  +
+#   scale_fill_manual(values = cbp1[c(7,8)])
 ```
 
 
@@ -192,11 +282,7 @@ ggplot(intentsPure, aes(intent, satisfaction, fill = factor(group))) +
 
 ```{r violin satisfaction behaviorals}
 
-satBehavLong <- melt(intents, id.vars = c("sessionId", "satisfaction"),
-                     measure.vars = behaviorNames,
-                     variable.name = "behavioral variable")
-
-ggplot(satBehavLong[value >= 1], 
+ggplot(behaviorLong[value >= 1], 
        aes(x= log(value), y = satisfaction, group = satisfaction, fill = as.factor(satisfaction))) +
   geom_violin() +
   facet_wrap(~`behavioral variable`, scales = "free") +
@@ -204,17 +290,26 @@ ggplot(satBehavLong[value >= 1],
   theme(legend.position="none") +
   scale_fill_brewer(palette="Set1")
 
+# ggplot(satBehavLong[value >= 1], 
+#        aes(x= log(value), y = satisfaction, group = satisfaction, fill = as.factor(satisfaction))) +
+#   geom_violin() +
+#   facet_wrap(~`behavioral variable`, scales = "free") +
+#   theme_classic() +
+#   theme(legend.position="none") +
+#   scale_fill_brewer(palette="Set1")
+
 ```
 
 ## Corrplots
 
 ```{r corrPrep}
 ## cor plot data prep
-corrIntentBehav <- cor(oneHot[, `Decisive - catch-up`:`Explorative - watchlist`],
-                       oneHot[, ..behaviorNames])
 
-p.mat <- psych::corr.test(oneHot[, `Decisive - catch-up`:`Explorative - watchlist`],
-                       oneHot[, ..behaviorNames]) #, adjust="none")
+corrIntentBehav <- cor(responded[, `Decisive - catch-up`:`Explorative - watchlist`],
+                       responded[, ..behaviorNames])
+
+p.mat <- psych::corr.test(responded[, `Decisive - catch-up`:`Explorative - watchlist`],
+                       responded[, ..behaviorNames]) #, adjust="none")
 
 scaledCorr <- corrIntentBehav * 10
 
@@ -224,12 +319,16 @@ scaledCorr <- corrIntentBehav * 10
 The original corrplot
 
 ```{r corrplot}
-ggcorrplot(scaledCorr, show.legend=T) + # lab = TRUE
-  scale_fill_gradientn("",
-                       colours = c("darkblue","white","red"),
-                       values = scales::rescale(c(min(scaledCorr), 0, max(scaledCorr))),
-                       labels = c(round(min(scaledCorr), 1), -0.60, 0,
-                                  0.60, round(max(scaledCorr), 1)))
+if(realData){
+  ggcorrplot(scaledCorr, show.legend=T) + # lab = TRUE
+    scale_fill_gradientn("",
+                         colours = c("darkblue","white","red"),
+                         values = scales::rescale(c(min(scaledCorr), 0, max(scaledCorr))),
+                         labels = c(round(min(scaledCorr), 1), -0.60, 0,
+                                    0.60, round(max(scaledCorr), 1)))
+} else {
+  ggcorrplot(scaledCorr, show.legend=T)
+}
 
 ```
 
@@ -237,13 +336,16 @@ The corrplot with significance testing (corrected for multiple testing, signific
 
 ```{r corrplot test}
 
-ggcorrplot(scaledCorr, show.legend=T, p.mat = p.mat$p, pch.cex = 2) + # lab = TRUE
+if(realData){
+  ggcorrplot(scaledCorr, show.legend=T, p.mat = p.mat$p, pch.cex = 2) + # lab = TRUE
   scale_fill_gradientn("",
                        colours = c("darkblue","white","red"),
                        values = scales::rescale(c(min(scaledCorr), 0, max(scaledCorr))),
                        labels = c(round(min(scaledCorr), 1), -0.60, 0,
                                   0.60, round(max(scaledCorr), 1)))
-
+} else {
+  ggcorrplot(scaledCorr, show.legend=T, p.mat = p.mat$p, pch.cex = 2)
+}
 ```
 
 # Modelling
