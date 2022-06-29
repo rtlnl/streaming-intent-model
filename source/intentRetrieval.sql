@@ -1,3 +1,4 @@
+/* replace [platform] with yours */
 WITH main AS (
   SELECT
     fullVisitorId,
@@ -14,7 +15,7 @@ WITH main AS (
     hits.time as hitTime,
     row_number() over(partition by CONCAT(fullVisitorId,' ', CAST(visitId as STRING)) order by hits.time) as rn,
     min(IF(REGEXP_CONTAINS(hits.page.pagePath,'/player/'), hits.time / 1000,  NULL)) OVER sessionTime as timeToFirstPlay,
-    min(CASE WHEN REGEXP_CONTAINS(hits.page.pagePath,'videoland.com/trailer/') THEN hits.time / 1000 ELSE NULL END) OVER sessionTime as timeToFirstTrailer,
+    min(CASE WHEN REGEXP_CONTAINS(hits.page.pagePath,'[platform].com/trailer/') THEN hits.time / 1000 ELSE NULL END) OVER sessionTime as timeToFirstTrailer,
     ( SELECT AS STRUCT
       MAX(IF(index=37, value, NULL)) as strip_name, 
       MAX(IF(index=43, value, NULL)) as seniority,
@@ -41,14 +42,14 @@ SELECT
   COUNT(cd.strip_name) as nStrips,  
   MIN(visitStartTime) as visitStartTime,
   
-  COUNTIF(CONTAINS_SUBSTR(pagePath,'videoland.com/account')) as nAccounts,
-  COUNTIF(pagePath = 'www.videoland.com/zoeken' ) as nSearches,
+  COUNTIF(CONTAINS_SUBSTR(pagePath,'[platform].com/account')) as nAccounts,
+  COUNTIF(pagePath = 'www.[platform].com/zoeken' ) as nSearches,
   COUNTIF(eventCategory = "navigation" AND eventAction = "click.profile-menu") as nProfileClicks,
   COUNTIF(eventCategory = "content curation" AND eventAction = "click.add-watchlist") as nBookmarks, # I removed DISTINCT here, because one person might add several bookmarks from the same page
   COUNT(DISTINCT IF(CONTAINS_SUBSTR(pagePath,'/series/'), pagePath, NULL)) as nSeriesDescr,
   COUNT(DISTINCT IF(CONTAINS_SUBSTR(pagePath,'/films/'), pagePath, NULL)) as nMoviesDescr,
   COUNT(DISTINCT IF(CONTAINS_SUBSTR(pagePath,'/player/'), pagePath, NULL)) as numPlays,
-  COUNT(DISTINCT IF(CONTAINS_SUBSTR(pagePath,'videoland.com/trailer/'), pagePath, NULL)) as numTrailerPlays,  
+  COUNT(DISTINCT IF(CONTAINS_SUBSTR(pagePath,'[platform].com/trailer/'), pagePath, NULL)) as numTrailerPlays,  
   MAX(timeToFirstPlay) as timeToFirstPlay,
   MAX(timeToFirstTrailer) as timeToFirstPlay
 
