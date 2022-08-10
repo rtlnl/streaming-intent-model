@@ -424,7 +424,7 @@ posteriors <- list()
 
 j <- 1
 for (i in possibleIntentsOrigNames){
-  thisBayes <- readRDS(paste0("../intentBasedClustering/models/logistic_", i, ".rds"))
+  thisBayes <- readRDS(paste0("models/logistic_", i, ".rds"))
   thisPosterior <- thisBayes %>% as.array
   thisBayes %<>% tidy_draws()
   notConverged <- thisBayes %>% summarise_draws() %>%
