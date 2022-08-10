@@ -1,32 +1,47 @@
----
-title: "Intent-based Satisfaction Modeling – From Music to Video Streaming"
-author: "Gabriel Bénédict"
-output: 
-  rmarkdown::github_document:
-    number_sections: true
-    toc_depth: 2
-    toc: true
----
+Intent-based Satisfaction Modeling – From Music to Video Streaming
+================
+Gabriel Bénédict
 
-This repository contains the supporting material for the paper *Intent-based Satisfaction Modeling – From Music to Video Streaming*. A reproducibility study of [Mehrotra et. al. 2019](https://rishabhmehrotra.com/papers/WWW2019-intent-mehrotra.pdf).
+-   <a href="#libraries" id="toc-libraries">1 libraries</a>
+-   <a href="#data-prep" id="toc-data-prep">2 Data prep</a>
+    -   <a href="#trivial-fake-data" id="toc-trivial-fake-data">2.1 Trivial Fake
+        Data</a>
+    -   <a href="#behavioral-data" id="toc-behavioral-data">2.2 Behavioral
+        data</a>
+    -   <a href="#available-vars" id="toc-available-vars">2.3 available Vars</a>
+-   <a href="#vizualizations" id="toc-vizualizations">3 Vizualizations</a>
+    -   <a href="#descriptive-stats-on-behavioral-vars"
+        id="toc-descriptive-stats-on-behavioral-vars">3.1 Descriptive stats on
+        Behavioral Vars</a>
+    -   <a href="#the-satisfaction-histogram"
+        id="toc-the-satisfaction-histogram">3.2 The Satisfaction histogram</a>
+    -   <a href="#violin-plots" id="toc-violin-plots">3.3 Violin Plots</a>
+    -   <a href="#corrplots" id="toc-corrplots">3.4 Corrplots</a>
+-   <a href="#modelling" id="toc-modelling">4 Modelling</a>
+    -   <a href="#per-intent-logistic-bayes-regression"
+        id="toc-per-intent-logistic-bayes-regression">4.1 per intent logistic
+        Bayes regression</a>
+    -   <a href="#chain-plots" id="toc-chain-plots">4.2 Chain PLots</a>
 
-The plots shown here are made with real Videoland data. In order to run the code yourself, download the repo and run the .Rmd file. Trivial data simulation is provided below instead of real user data (GDPR compliance). You can expect therefore the plots to change.
+This repository contains the supporting material for the paper
+*Intent-based Satisfaction Modeling – From Music to Video Streaming*. A
+reproducibility study of [Mehrotra et.
+al. 2019](https://rishabhmehrotra.com/papers/WWW2019-intent-mehrotra.pdf).
+
+The plots shown here are made with real Videoland data. In order to run
+the code yourself, download the repo and run the .Rmd file. Trivial data
+simulation is provided below instead of real user data (GDPR
+compliance). You can expect therefore the plots to change.
 
 *Change this value to false, to make the code executable with fake data*
 
-
-```r
+``` r
 realData = T
 ```
 
+# 1 libraries
 
-
-
-# libraries
-
-
-
-```r
+``` r
 # data wrangling
 library(data.table) # faster and arguably nice syntax
 library(magrittr) # allows piping such as %>% or %<>%
@@ -46,22 +61,15 @@ library(tidybayes)
 library(bayesplot) # plot bayesian model
 ```
 
-# Data prep
+# 2 Data prep
 
+## 2.1 Trivial Fake Data
 
+This is probably a research topic of its own. This data is only there
+for the code to run. We thus go with the simplest approach, without
+considering correlations between variables.
 
-
-
-
-
-
-
-## Trivial Fake Data
-
-This is probably a research topic of its own. This data is only there for the code to run. We thus go with the simplest approach, without considering correlations between variables.
-
-
-```r
+``` r
 possibleIntents <- c('Decisive - catch-up' , 'Decisive - continuewatching' , 'Decisive - livetv' , 'Decisive - specifictitle' , 'Explorative - addwatchlist' , 'Explorative - genre' , 'Explorative - new' , 'Explorative - watchlist')
 
 behaviorNames <- c('numPlays' , 'timeToFirstPlay' , 'numTrailerPlays' , 'timeToFirstTrailer' , 'nBookmarks' , 'nProfileClicks' , 'nAccounts' , 'nStrips' , 'nSearches' , 'nSeriesDescr' , 'nMoviesDescr' , 'sessionLength')
@@ -91,14 +99,17 @@ behaviorLong <- melt(responded, id.vars = c("sessionId", "satisfaction"),
                      variable.name = "behavioral variable")
 ```
 
-## Behavioral data
+## 2.2 Behavioral data
 
-If you are running a website and are tracking users with Google Analytics, the Bigquery code [here](source/intentRetrieval.sql), will allow you to retrieve the same behavioral data as ours. Custom dimensions are proper to our platform and will differ depending on your setup.
+If you are running a website and are tracking users with Google
+Analytics, the Bigquery code [here](source/intentRetrieval.sql), will
+allow you to retrieve the same behavioral data as ours. Custom
+dimensions are proper to our platform and will differ depending on your
+setup.
 
-## available Vars
+## 2.3 available Vars
 
-
-```r
+``` r
 behaviors <- behaviorNames %>% paste(., collapse =" + ") # useful for modelling
 
 possibleIntents <- names(responded[,`Decisive - catch-up`:`Explorative - watchlist`])
@@ -106,57 +117,53 @@ possibleIntents <- names(responded[,`Decisive - catch-up`:`Explorative - watchli
 kable(list(data.frame("intents" = possibleIntents), data.frame("behaviorals" = behaviorNames)))
 ```
 
+| intents                     |
+|:----------------------------|
+| Decisive - catch-up         |
+| Decisive - continuewatching |
+| Decisive - livetv           |
+| Decisive - specifictitle    |
+| Explorative - addwatchlist  |
+| Explorative - genre         |
+| Explorative - new           |
+| Explorative - watchlist     |
 
+| behaviorals        |
+|:-------------------|
+| numPlays           |
+| timeToFirstPlay    |
+| numTrailerPlays    |
+| timeToFirstTrailer |
+| nBookmarks         |
+| nProfileClicks     |
+| nAccounts          |
+| nStrips            |
+| nSearches          |
+| nSeriesDescr       |
+| nMoviesDescr       |
+| sessionLength      |
 
-|intents                     |
-|:---------------------------|
-|Decisive - catch-up         |
-|Decisive - continuewatching |
-|Decisive - livetv           |
-|Decisive - specifictitle    |
-|Explorative - addwatchlist  |
-|Explorative - genre         |
-|Explorative - new           |
-|Explorative - watchlist     |
+# 3 Vizualizations
 
-|behaviorals        |
-|:------------------|
-|numPlays           |
-|timeToFirstPlay    |
-|numTrailerPlays    |
-|timeToFirstTrailer |
-|nBookmarks         |
-|nProfileClicks     |
-|nAccounts          |
-|nStrips            |
-|nSearches          |
-|nSeriesDescr       |
-|nMoviesDescr       |
-|sessionLength      |
-
-# Vizualizations
-
-## Descriptive stats on Behavioral Vars
+## 3.1 Descriptive stats on Behavioral Vars
 
 We show log values given the skewness of the data
 
-
-```r
+``` r
 responded[, ..behaviorNames] %>% gather %>% ggplot(aes(log(value))) + 
   facet_wrap(~ key, scales = "free") + geom_histogram()
 ```
 
-![plot of chunk log descriptive](figure/log descriptive-1.png)
+![](README_files/figure-gfm/log%20descriptive-1.png)<!-- -->
 
-```r
+``` r
 # d[, ..behaviorNames] %>% gather %>% ggplot(aes(log(value))) + 
 #   facet_wrap(~ key, scales = "free") + geom_histogram()
 ```
 
-### for the quite satisfied (y >= 4)
+### 3.1.1 for the quite satisfied (y \>= 4)
 
-
-```r
+``` r
 responded[satisfaction >= 4, sessionLength:nStrips] %>%
   keep(is.numeric) %>% 
   gather() %>% 
@@ -165,9 +172,9 @@ responded[satisfaction >= 4, sessionLength:nStrips] %>%
     geom_histogram()
 ```
 
-![plot of chunk log satisfied descriptive](figure/log satisfied descriptive-1.png)
+![](README_files/figure-gfm/log%20satisfied%20descriptive-1.png)<!-- -->
 
-```r
+``` r
 # intents[satisfactionBin == 1, sessionLengthByHit:nStrips] %>%
 #   keep(is.numeric) %>% 
 #   gather() %>% 
@@ -176,10 +183,9 @@ responded[satisfaction >= 4, sessionLength:nStrips] %>%
 #     geom_histogram()
 ```
 
-### for the less satisfied (y<4)
+### 3.1.2 for the less satisfied (y\<4)
 
-
-```r
+``` r
 responded[satisfaction < 4, sessionLength:nStrips] %>%
   keep(is.numeric) %>% 
   gather() %>% 
@@ -188,9 +194,9 @@ responded[satisfaction < 4, sessionLength:nStrips] %>%
     geom_histogram()
 ```
 
-![plot of chunk log unsatisfied descriptive](figure/log unsatisfied descriptive-1.png)
+![](README_files/figure-gfm/log%20unsatisfied%20descriptive-1.png)<!-- -->
 
-```r
+``` r
 # intents[satisfactionBin == 0, sessionLengthByHit:nStrips] %>%
 #   keep(is.numeric) %>% 
 #   gather() %>% 
@@ -199,10 +205,9 @@ responded[satisfaction < 4, sessionLength:nStrips] %>%
 #     geom_histogram()
 ```
 
-## The Satisfaction histogram
+## 3.2 The Satisfaction histogram
 
-
-```r
+``` r
 # Daltonian palette https://jfly.uni-koeln.de/color/
 cbp1 <- c("#999999", "#E69F00", "#56B4E9", "#009E73",
           "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
@@ -216,14 +221,13 @@ ggplot(responded, aes(x=satisfaction, y = ..count.., fill = satisfaction)) +
   theme(text = element_text(size = 18))
 ```
 
-![plot of chunk satisfaction histogram](figure/satisfaction histogram-1.png)
+![](README_files/figure-gfm/satisfaction%20histogram-1.png)<!-- -->
 
-## Violin Plots
+## 3.3 Violin Plots
 
-### Violins of Satisfaction and Intents
+### 3.3.1 Violins of Satisfaction and Intents
 
-
-```r
+``` r
 ggplot(intentsLong, aes(intent, satisfaction, fill = factor(group))) +
   # stat_summary(fun.y=mean, geom="point", shape=23, size=2) +
   geom_violin() +
@@ -248,9 +252,9 @@ ggplot(intentsLong, aes(intent, satisfaction, fill = factor(group))) +
   scale_fill_manual(values = c(blue, orange))
 ```
 
-![plot of chunk violin satisfaction intents](figure/violin satisfaction intents-1.png)
+![](README_files/figure-gfm/violin%20satisfaction%20intents-1.png)<!-- -->
 
-```r
+``` r
 # ggplot(intentsPure, aes(intent, satisfaction, fill = factor(group))) + 
 #   # stat_summary(fun.y=mean, geom="point", shape=23, size=2) +
 #   geom_violin() +
@@ -273,11 +277,9 @@ ggplot(intentsLong, aes(intent, satisfaction, fill = factor(group))) +
 #   scale_fill_manual(values = cbp1[c(7,8)])
 ```
 
+### 3.3.2 Violins of Satisfaction and Behavioral Variables
 
-### Violins of Satisfaction and Behavioral Variables
-
-
-```r
+``` r
 ggplot(behaviorLong[value >= 1], 
        aes(x= log(value), y = satisfaction, group = satisfaction, fill = as.factor(satisfaction))) +
   geom_violin() +
@@ -287,9 +289,9 @@ ggplot(behaviorLong[value >= 1],
   scale_fill_brewer(palette="Set1")
 ```
 
-![plot of chunk violin satisfaction behaviorals](figure/violin satisfaction behaviorals-1.png)
+![](README_files/figure-gfm/violin%20satisfaction%20behaviorals-1.png)<!-- -->
 
-```r
+``` r
 # ggplot(satBehavLong[value >= 1], 
 #        aes(x= log(value), y = satisfaction, group = satisfaction, fill = as.factor(satisfaction))) +
 #   geom_violin() +
@@ -299,10 +301,9 @@ ggplot(behaviorLong[value >= 1],
 #   scale_fill_brewer(palette="Set1")
 ```
 
-## Corrplots
+## 3.4 Corrplots
 
-
-```r
+``` r
 ## cor plot data prep
 
 corrIntentBehav <- cor(responded[, `Decisive - catch-up`:`Explorative - watchlist`],
@@ -316,8 +317,7 @@ scaledCorr <- corrIntentBehav * 10
 
 The original corrplot
 
-
-```r
+``` r
 if(realData){
   ggcorrplot(scaledCorr, show.legend=T) + # lab = TRUE
     theme(text = element_text(size = 18)) +
@@ -331,12 +331,12 @@ if(realData){
 }
 ```
 
-![plot of chunk corrplot](figure/corrplot-1.png)
+![](README_files/figure-gfm/corrplot-1.png)<!-- -->
 
-The corrplot with significance testing (corrected for multiple testing, significance level 0.05). A cross indicates insignificant correlations.
+The corrplot with significance testing (corrected for multiple testing,
+significance level 0.05). A cross indicates insignificant correlations.
 
-
-```r
+``` r
 if(realData){
   ggcorrplot(scaledCorr, show.legend=T, p.mat = p.mat$p, pch.cex = 2) + # lab = TRUE
     theme(text = element_text(size = 18)) +
@@ -350,14 +350,14 @@ if(realData){
 }
 ```
 
-![plot of chunk corrplot test](figure/corrplot test-1.png)
+![](README_files/figure-gfm/corrplot%20test-1.png)<!-- -->
 
-# Modelling
+# 4 Modelling
 
-5-fold trainval / test (80 / 20 %). For each trainval set, 5-fold tain / val (80 / 20 %).
+5-fold trainval / test (80 / 20 %). For each trainval set, 5-fold tain /
+val (80 / 20 %).
 
-
-```r
+``` r
 source("source/utils.R")
 
 methodsParams <- list("w/o intent" = list(m = "logistic", withIntent = F, RE = F),
@@ -399,12 +399,11 @@ kbl(results, format="latex", booktabs = T, escape = F, linesep = linesep(11)) %>
     escape = F)
 ```
 
-## per intent logistic Bayes regression
+## 4.1 per intent logistic Bayes regression
 
-### modelling
+### 4.1.1 modelling
 
-
-```r
+``` r
 for (i in possibleIntents){
   logisticBayes <- brm(
     formula = as.formula(paste("satisfactionBin ~", behaviors)),
@@ -418,10 +417,9 @@ for (i in possibleIntents){
 logisticBayes <- do.call('rbind', lapply(list.files("models", full.names = TRUE, pattern = "logistic_"), readRDS))
 ```
 
-### plotting
+### 4.1.2 plotting
 
-
-```r
+``` r
 posteriors <- list()
 
 j <- 1
@@ -474,9 +472,8 @@ logisticBayes[varIntent %in% topVars] %>%
   scale_x_continuous(labels = scales::number_format(accuracy = 0.1))
 ```
 
-![plot of chunk bayes plotting](figure/bayes plotting-1.png)
+![](README_files/figure-gfm/bayes%20plotting-1.png)<!-- -->
 
-## Chain PLots
+## 4.2 Chain PLots
 
-![plot of chunk chains](figure/chains-1.png)![plot of chunk chains](figure/chains-2.png)![plot of chunk chains](figure/chains-3.png)![plot of chunk chains](figure/chains-4.png)![plot of chunk chains](figure/chains-5.png)![plot of chunk chains](figure/chains-6.png)![plot of chunk chains](figure/chains-7.png)![plot of chunk chains](figure/chains-8.png)
-
+![](README_files/figure-gfm/chains-1.png)<!-- -->![](README_files/figure-gfm/chains-2.png)<!-- -->![](README_files/figure-gfm/chains-3.png)<!-- -->![](README_files/figure-gfm/chains-4.png)<!-- -->![](README_files/figure-gfm/chains-5.png)<!-- -->![](README_files/figure-gfm/chains-6.png)<!-- -->![](README_files/figure-gfm/chains-7.png)<!-- -->![](README_files/figure-gfm/chains-8.png)<!-- -->
