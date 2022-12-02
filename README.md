@@ -1,4 +1,4 @@
-Intent-based Satisfaction Modeling – From Music to Video Streaming
+Intent-Satisfaction Modeling – From Music to Video Streaming
 ================
 Gabriel Bénédict
 
@@ -59,6 +59,7 @@ library(ggplot2)
 # Bayes
 library(tidybayes)
 library(bayesplot) # plot bayesian model
+library(brms)
 ```
 
 # 2 Data prep
@@ -215,13 +216,20 @@ cbp1 <- c("#999999", "#E69F00", "#56B4E9", "#009E73",
 blue <-  cbp1[6]
 orange <-  cbp1[2]
 
-## hist
+# hist
 ggplot(responded, aes(x=satisfaction, y = ..count.., fill = satisfaction)) +
   geom_bar(width = 0.5, fill = blue) + theme_classic() +
   theme(text = element_text(size = 18))
 ```
 
 ![](README_files/figure-gfm/satisfaction%20histogram-1.png)<!-- -->
+
+``` r
+# ggplot(responded, aes(x=..count.., y = satisfaction, fill = satisfaction)) +
+#   geom_bar(width = 0.5, fill = blue) + theme_classic() +
+#   scale_x_continuous(expand = c(0, 0)) +
+#   theme(text = element_text(size = 18))
+```
 
 ## 3.3 Violin Plots
 
@@ -417,7 +425,35 @@ for (i in possibleIntents){
 logisticBayes <- do.call('rbind', lapply(list.files("models", full.names = TRUE, pattern = "logistic_"), readRDS))
 ```
 
-### 4.1.2 plotting
+### 4.1.2 Goodness of Fit example
+
+``` r
+fit <- readRDS("models/logistic_Decisive_catch-up.rds")
+
+loo <- loo_subsample(fit, merge_chains = FALSE)
+loo
+```
+
+    ## 
+    ## Computed from 4000 by 400 subsampled log-likelihood
+    ## values from 544 total observations.
+    ## 
+    ##          Estimate   SE subsampling SE
+    ## elpd_loo   -249.8 15.0            1.2
+    ## p_loo        14.2  2.6            1.5
+    ## looic       499.5 30.0            2.5
+    ## ------
+    ## Monte Carlo SE of elpd_loo is NA.
+    ## 
+    ## Pareto k diagnostic values:
+    ##                          Count Pct.    Min. n_eff
+    ## (-Inf, 0.5]   (good)     391   97.8%   1024      
+    ##  (0.5, 0.7]   (ok)         4    1.0%   215       
+    ##    (0.7, 1]   (bad)        1    0.2%   61        
+    ##    (1, Inf)   (very bad)   4    1.0%   576       
+    ## See help('pareto-k-diagnostic') for details.
+
+### 4.1.3 plotting
 
 ``` r
 posteriors <- list()

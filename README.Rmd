@@ -1,5 +1,5 @@
 ---
-title: "Intent-based Satisfaction Modeling – From Music to Video Streaming"
+title: "Intent-Satisfaction Modeling – From Music to Video Streaming"
 author: "Gabriel Bénédict"
 output: 
   rmarkdown::github_document:
@@ -44,6 +44,7 @@ library(ggplot2)
 # Bayes
 library(tidybayes)
 library(bayesplot) # plot bayesian model
+library(brms)
 
 ```
 
@@ -208,10 +209,15 @@ cbp1 <- c("#999999", "#E69F00", "#56B4E9", "#009E73",
 blue <-  cbp1[6]
 orange <-  cbp1[2]
 
-## hist
+# hist
 ggplot(responded, aes(x=satisfaction, y = ..count.., fill = satisfaction)) +
   geom_bar(width = 0.5, fill = blue) + theme_classic() +
   theme(text = element_text(size = 18))
+
+# ggplot(responded, aes(x=..count.., y = satisfaction, fill = satisfaction)) +
+#   geom_bar(width = 0.5, fill = blue) + theme_classic() +
+#   scale_x_continuous(expand = c(0, 0)) +
+#   theme(text = element_text(size = 18))
 
 ```
 
@@ -405,6 +411,18 @@ for (i in possibleIntents){
 
 logisticBayes <- do.call('rbind', lapply(list.files("models", full.names = TRUE, pattern = "logistic_"), readRDS))
 ```
+
+### Goodness of Fit example
+
+```{r}
+
+fit <- readRDS("models/logistic_Decisive_catch-up.rds")
+
+loo <- loo_subsample(fit, merge_chains = FALSE)
+loo
+
+```
+
 
 ### plotting
 
